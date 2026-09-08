@@ -5,13 +5,9 @@ Released under Apache 2.0 license as described in the file LICENSE.
 
 #include "shim.h"
 
-static EVP_MAC *lc_mac(b_lean_obj_arg mac) {
-  return (EVP_MAC *)lean_get_external_data(mac);
-}
+static EVP_MAC *lc_mac(b_lean_obj_arg mac) { return (EVP_MAC *)lc_handle(mac); }
 
-static EVP_MAC_CTX *lc_mac_ctx(b_lean_obj_arg ctx) {
-  return (EVP_MAC_CTX *)lean_get_external_data(ctx);
-}
+static EVP_MAC_CTX *lc_mac_ctx(b_lean_obj_arg ctx) { return (EVP_MAC_CTX *)lc_handle(ctx); }
 
 LEAN_EXPORT lean_obj_res lc_mac_fetch(b_lean_obj_arg libctx, b_lean_obj_arg name,
                                       lean_obj_arg world) {
@@ -19,7 +15,12 @@ LEAN_EXPORT lean_obj_res lc_mac_fetch(b_lean_obj_arg libctx, b_lean_obj_arg name
   ERR_clear_error();
   EVP_MAC *mac = EVP_MAC_fetch(lc_libctx_of(libctx), lean_string_cstr(name), NULL);
   if (mac == NULL) return lc_io_error("EVP_MAC_fetch");
-  return lean_io_result_mk_ok(lean_alloc_external(lc_mac_class, mac));
+  lean_object *wrapped = lc_owned_alloc(&lc_mac_class, mac, lc_libctx_opt(libctx));
+  if (wrapped == NULL) {
+    EVP_MAC_free(mac);
+    return lc_io_error("allocating the MAC handle");
+  }
+  return lean_io_result_mk_ok(wrapped);
 }
 
 LEAN_EXPORT lean_obj_res lc_mac_name(b_lean_obj_arg mac) {
@@ -32,7 +33,12 @@ LEAN_EXPORT lean_obj_res lc_mac_ctx_new(b_lean_obj_arg mac, lean_obj_arg world) 
   ERR_clear_error();
   EVP_MAC_CTX *ctx = EVP_MAC_CTX_new(lc_mac(mac));
   if (ctx == NULL) return lc_io_error("EVP_MAC_CTX_new");
-  return lean_io_result_mk_ok(lean_alloc_external(lc_mac_ctx_class, ctx));
+  lean_object *wrapped = lc_owned_alloc(&lc_mac_ctx_class, ctx, lc_owner(mac));
+  if (wrapped == NULL) {
+    EVP_MAC_CTX_free(ctx);
+    return lc_io_error("allocating the MAC context handle");
+  }
+  return lean_io_result_mk_ok(wrapped);
 }
 
 LEAN_EXPORT lean_obj_res lc_mac_ctx_init(b_lean_obj_arg ctx, b_lean_obj_arg key,

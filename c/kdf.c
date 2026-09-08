@@ -11,11 +11,16 @@ LEAN_EXPORT lean_obj_res lc_kdf_fetch(b_lean_obj_arg libctx, b_lean_obj_arg name
   ERR_clear_error();
   EVP_KDF *kdf = EVP_KDF_fetch(lc_libctx_of(libctx), lean_string_cstr(name), NULL);
   if (kdf == NULL) return lc_io_error("EVP_KDF_fetch");
-  return lean_io_result_mk_ok(lean_alloc_external(lc_kdf_class, kdf));
+  lean_object *wrapped = lc_owned_alloc(&lc_kdf_class, kdf, lc_libctx_opt(libctx));
+  if (wrapped == NULL) {
+    EVP_KDF_free(kdf);
+    return lc_io_error("allocating the KDF handle");
+  }
+  return lean_io_result_mk_ok(wrapped);
 }
 
 LEAN_EXPORT lean_obj_res lc_kdf_name(b_lean_obj_arg kdf) {
-  const char *name = EVP_KDF_get0_name((EVP_KDF *)lean_get_external_data(kdf));
+  const char *name = EVP_KDF_get0_name((EVP_KDF *)lc_handle(kdf));
   return lean_mk_string(name == NULL ? "" : name);
 }
 
@@ -26,7 +31,7 @@ LEAN_EXPORT lean_obj_res lc_kdf_derive(b_lean_obj_arg kdf, b_lean_obj_arg length
   lc_params built;
   if (!lc_params_build(params, &built)) return lc_io_error("allocating OSSL_PARAM array");
   size_t size = (size_t)lean_uint64_of_nat(length);
-  EVP_KDF_CTX *ctx = EVP_KDF_CTX_new((EVP_KDF *)lean_get_external_data(kdf));
+  EVP_KDF_CTX *ctx = EVP_KDF_CTX_new((EVP_KDF *)lc_handle(kdf));
   lean_obj_res out = lean_alloc_sarray(1, size, size == 0 ? 1 : size);
   const char *failed = NULL;
   if (ctx == NULL)

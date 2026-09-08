@@ -2,7 +2,6 @@
 Copyright (c) 2026 Paul Butcher. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
-import Libcrypto.Init
 
 namespace Libcrypto.Evp
 
@@ -10,7 +9,10 @@ private opaque LibCtxImpl : NonemptyType
 
 /-- An `OSSL_LIB_CTX`, the scope a set of providers is loaded into. Every `fetch`
 in this library takes an `Option LibCtx`, and `none` means the default context,
-which is the one an application that never mentions providers uses. -/
+which is the one an application that never mentions providers uses.
+
+Whatever is fetched from a context holds it open, so there is no need to keep one
+in hand to go on using what came out of it. -/
 def LibCtx : Type := LibCtxImpl.type
 
 instance : Nonempty LibCtx := LibCtxImpl.property

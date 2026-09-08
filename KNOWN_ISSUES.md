@@ -22,7 +22,7 @@ Lean's garbage collector may copy a `ByteArray`, and nothing here can find the c
 
 ## Why the package is not called `libcrypto`
 
-Lake names each precompiled module's plugin after the package, which for a package called `libcrypto` gives `libcrypto_Libcrypto_Init.so`. Lean's plugin loader then strips a leading `lib` from that filename before deriving the module's initialiser symbol, so it looks for `initialize_crypto_Libcrypto_Init` while the file exports `initialize_libcrypto_Libcrypto_Init`.
+Lake names each precompiled module's plugin after the package, which for a package called `libcrypto` gives `libcrypto_Libcrypto_Hash.so`. Lean's plugin loader then strips a leading `lib` from that filename before deriving the module's initialiser symbol, so it looks for `initialize_crypto_Libcrypto_Hash` while the file exports `initialize_libcrypto_Libcrypto_Hash`.
 
 Dropping `precompileModules` is not a way out, because Lake then passes no dynamic libraries at all and the `initialize` block cannot find the shim. Hence `lean-libcrypto`. Observed on Lean 4.33.1.
 

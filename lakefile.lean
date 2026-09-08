@@ -30,7 +30,7 @@ target cryptoShimDynlib pkg : Dynlib := do
     addPlatformTrace
     let cflags ← pkgConfigFlags #["--cflags"] "libcrypto"
     let libs ← pkgConfigFlags #["--libs"] "libcrypto"
-    let cArgs := #["-fPIC", "-Wall", "-Wextra", "-I", (← getLeanIncludeDir).toString,
+    let cArgs := #["-fPIC", "-pthread", "-Wall", "-Wextra", "-I", (← getLeanIncludeDir).toString,
       "-I", cDir.toString] ++ cflags
     let libFile := pkg.sharedLibDir / (nameToSharedLib "crypto_shim")
     let art ← buildArtifactUnlessUpToDate libFile (ext := sharedLibExt) (restore := true) do
@@ -40,7 +40,7 @@ target cryptoShimDynlib pkg : Dynlib := do
         compileO oFile (cDir / name) cArgs "cc"
         oFiles := oFiles.push oFile.toString
       let undefinedArgs := if System.Platform.isOSX then #["-undefined", "dynamic_lookup"] else #[]
-      compileSharedLib libFile (oFiles ++ libs ++ undefinedArgs) "cc"
+      compileSharedLib libFile (oFiles ++ libs ++ #["-pthread"] ++ undefinedArgs) "cc"
     return { path := art.path, name := "crypto_shim" : Dynlib }
 
 @[default_target]

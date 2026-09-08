@@ -38,6 +38,29 @@ def cases : Array Case := #[
       let md ← Evp.Digest.fetchIn (some ctx) legacyOnly
       expectEq s!"{legacyOnly} of the empty string"
         (Hex.toHex (← Evp.Digest.digest md ByteArray.empty #[])) emptyWhirlpool },
+  -- Freeing an `OSSL_LIB_CTX` tears down its providers whatever is still using
+  -- them, so each of these would be a use after free if the fetched object did
+  -- not hold its context open. OpenSSL 3.0 crashes on it; 3.5 survives.
+  { name := "a digest outlives the context it was fetched from"
+    run := do
+      let md ← Evp.Digest.fetchIn (some (← Evp.LibCtx.withProviders #["default", "legacy"]))
+        legacyOnly
+      expectEq s!"{legacyOnly} of the empty string"
+        (Hex.toHex (← Evp.Digest.digest md ByteArray.empty #[])) emptyWhirlpool },
+  { name := "a digest context outlives the digest and the context behind it"
+    run := do
+      let dctx ← Evp.Digest.Ctx.new
+      dctx.init (← Evp.Digest.fetchIn
+        (some (← Evp.LibCtx.withProviders #["default", "legacy"])) legacyOnly) #[]
+      dctx.update ByteArray.empty
+      expectEq s!"{legacyOnly} of the empty string" (Hex.toHex (← dctx.final)) emptyWhirlpool },
+  { name := "a MAC context outlives the MAC and the context behind it"
+    run := do
+      let mctx ← Evp.Mac.Ctx.new
+        (← Evp.Mac.fetchIn (some (← Evp.LibCtx.withProviders #["default"])) "HMAC")
+      mctx.init "a key".toUTF8 #[⟨"digest", .utf8 "SHA2-256"⟩]
+      mctx.update "a message".toUTF8
+      expectEq "tag length" (← mctx.final).size 32 },
   { name := "a context with only default still refuses a legacy digest"
     run := do
       let ctx ← Evp.LibCtx.withProviders #["default"]

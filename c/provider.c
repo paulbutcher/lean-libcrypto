@@ -12,12 +12,18 @@ LEAN_EXPORT lean_obj_res lc_libctx_new(lean_obj_arg world) {
   ERR_clear_error();
   lc_libctx *held = calloc(1, sizeof(lc_libctx));
   if (held == NULL) return lc_io_error("allocating the library context handle");
+  held->refs = 1;
   held->ctx = OSSL_LIB_CTX_new();
   if (held->ctx == NULL) {
     free(held);
     return lc_io_error("OSSL_LIB_CTX_new");
   }
-  return lean_io_result_mk_ok(lean_alloc_external(lc_libctx_class, held));
+  lean_object *wrapped = lc_alloc_external(&lc_libctx_class, held);
+  if (wrapped == NULL) {
+    lc_libctx_release(held);
+    return lc_io_error("registering the external classes");
+  }
+  return lean_io_result_mk_ok(wrapped);
 }
 
 LEAN_EXPORT lean_obj_res lc_provider_load(b_lean_obj_arg libctx, b_lean_obj_arg name,

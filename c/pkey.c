@@ -8,6 +8,14 @@ Released under Apache 2.0 license as described in the file LICENSE.
 
 #include "shim.h"
 
+/* NULL, and the key freed, only if the external classes could not be
+   registered. */
+static lean_object *lc_pkey_wrap(EVP_PKEY *pkey) {
+  lean_object *wrapped = lc_alloc_external(&lc_pkey_class, pkey);
+  if (wrapped == NULL) EVP_PKEY_free(pkey);
+  return wrapped;
+}
+
 static lean_obj_res lc_some(lean_obj_arg value) {
   lean_object *wrapper = lean_alloc_ctor(1, 1, 0);
   lean_ctor_set(wrapper, 0, value);
@@ -51,7 +59,9 @@ LEAN_EXPORT lean_obj_res lc_pkey_decode(b_lean_obj_arg der, uint8_t selection,
     EVP_PKEY_free(pkey);
     return lean_io_result_mk_ok(lean_box(0));
   }
-  return lean_io_result_mk_ok(lc_some(lean_alloc_external(lc_pkey_class, pkey)));
+  lean_object *wrapped = lc_pkey_wrap(pkey);
+  if (wrapped == NULL) return lc_io_error("registering the external classes");
+  return lean_io_result_mk_ok(lc_some(wrapped));
 }
 
 LEAN_EXPORT lean_obj_res lc_pkey_encode(b_lean_obj_arg pkey, uint8_t selection,
@@ -86,7 +96,9 @@ LEAN_EXPORT lean_obj_res lc_pkey_from_raw_public_key(b_lean_obj_arg algorithm, b
     ERR_clear_error();
     return lean_io_result_mk_ok(lean_box(0));
   }
-  return lean_io_result_mk_ok(lc_some(lean_alloc_external(lc_pkey_class, pkey)));
+  lean_object *wrapped = lc_pkey_wrap(pkey);
+  if (wrapped == NULL) return lc_io_error("registering the external classes");
+  return lean_io_result_mk_ok(lc_some(wrapped));
 }
 
 LEAN_EXPORT lean_obj_res lc_pkey_from_raw_private_key(b_lean_obj_arg algorithm, b_lean_obj_arg key,
@@ -99,7 +111,9 @@ LEAN_EXPORT lean_obj_res lc_pkey_from_raw_private_key(b_lean_obj_arg algorithm, 
     ERR_clear_error();
     return lean_io_result_mk_ok(lean_box(0));
   }
-  return lean_io_result_mk_ok(lc_some(lean_alloc_external(lc_pkey_class, pkey)));
+  lean_object *wrapped = lc_pkey_wrap(pkey);
+  if (wrapped == NULL) return lc_io_error("registering the external classes");
+  return lean_io_result_mk_ok(lc_some(wrapped));
 }
 
 LEAN_EXPORT lean_obj_res lc_pkey_type_name(b_lean_obj_arg pkey) {
@@ -130,7 +144,9 @@ LEAN_EXPORT lean_obj_res lc_pkey_generate(b_lean_obj_arg algorithm, b_lean_obj_a
     EVP_PKEY_free(pkey);
     return lc_io_error(failed);
   }
-  return lean_io_result_mk_ok(lean_alloc_external(lc_pkey_class, pkey));
+  lean_object *wrapped = lc_pkey_wrap(pkey);
+  if (wrapped == NULL) return lc_io_error("registering the external classes");
+  return lean_io_result_mk_ok(wrapped);
 }
 
 LEAN_EXPORT lean_obj_res lc_pkey_sign(b_lean_obj_arg pkey, b_lean_obj_arg digest,

@@ -14,15 +14,20 @@ LEAN_EXPORT lean_obj_res lc_cipher_fetch(b_lean_obj_arg libctx, b_lean_obj_arg n
   ERR_clear_error();
   EVP_CIPHER *cipher = EVP_CIPHER_fetch(lc_libctx_of(libctx), lean_string_cstr(name), NULL);
   if (cipher == NULL) return lc_io_error("EVP_CIPHER_fetch");
-  return lean_io_result_mk_ok(lean_alloc_external(lc_cipher_class, cipher));
+  lean_object *wrapped = lc_owned_alloc(&lc_cipher_class, cipher, lc_libctx_opt(libctx));
+  if (wrapped == NULL) {
+    EVP_CIPHER_free(cipher);
+    return lc_io_error("allocating the cipher handle");
+  }
+  return lean_io_result_mk_ok(wrapped);
 }
 
 static const EVP_CIPHER *lc_cipher(b_lean_obj_arg cipher) {
-  return (const EVP_CIPHER *)lean_get_external_data(cipher);
+  return (const EVP_CIPHER *)lc_handle(cipher);
 }
 
 static EVP_CIPHER_CTX *lc_cipher_ctx(b_lean_obj_arg ctx) {
-  return (EVP_CIPHER_CTX *)lean_get_external_data(ctx);
+  return (EVP_CIPHER_CTX *)lc_handle(ctx);
 }
 
 static int lc_cipher_ctx_ready(b_lean_obj_arg ctx) {
@@ -58,7 +63,12 @@ LEAN_EXPORT lean_obj_res lc_cipher_ctx_new(lean_obj_arg world) {
   ERR_clear_error();
   EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
   if (ctx == NULL) return lc_io_error("EVP_CIPHER_CTX_new");
-  return lean_io_result_mk_ok(lean_alloc_external(lc_cipher_ctx_class, ctx));
+  lean_object *wrapped = lc_owned_alloc(&lc_cipher_ctx_class, ctx, NULL);
+  if (wrapped == NULL) {
+    EVP_CIPHER_CTX_free(ctx);
+    return lc_io_error("allocating the cipher context handle");
+  }
+  return lean_io_result_mk_ok(wrapped);
 }
 
 /* Each of `cipher`, `key` and `iv` is an `Option`, and `none` arrives as a
@@ -95,6 +105,7 @@ static lean_obj_res lc_cipher_ctx_init(b_lean_obj_arg ctx, b_lean_obj_arg cipher
     ok = EVP_CipherInit_ex2(c, chosen, NULL, NULL, encrypt, built.params);
   lc_params_release(&built);
   if (!ok) return lc_io_error(encrypt ? "EVP_EncryptInit_ex2" : "EVP_DecryptInit_ex2");
+  if (chosen != NULL) lc_owned_set_owner(ctx, lc_owner(lean_ctor_get(cipher, 0)));
 
   int key_size = lc_opt_size(key);
   int iv_size = lc_opt_size(iv);

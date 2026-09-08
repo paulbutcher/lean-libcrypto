@@ -16,7 +16,10 @@ Released under Apache 2.0 license as described in the file LICENSE.
 #include <openssl/params.h>
 #include <openssl/provider.h>
 
-/* Registered once by `lc_initialize`; see `Libcrypto.Init`. */
+/* Registered by the first call to `lc_alloc_external`, which is the only place an
+   external object is made. Registering from an `initialize` block in Lean would
+   put it out of reach of `lake lint`, which runs a module's initializers with
+   the .olean alone and so without the shim to call into. */
 extern lean_external_class *lc_md_class;
 extern lean_external_class *lc_md_ctx_class;
 extern lean_external_class *lc_pkey_class;
@@ -29,13 +32,18 @@ extern lean_external_class *lc_libctx_class;
 
 /* A library context together with what has been loaded into it. Freeing the
    context does not unload its providers, so they are kept here to be unloaded
-   first. */
+   first. `refs` counts the Lean handle and everything fetched through it. */
 typedef struct {
   OSSL_LIB_CTX *ctx;
   OSSL_PROVIDER **providers;
   size_t count;
   size_t capacity;
+  size_t refs;
 } lc_libctx;
+
+/* Both take NULL for the default context, which is never freed. */
+lc_libctx *lc_libctx_retain(lc_libctx *held);
+void lc_libctx_release(lc_libctx *held);
 
 /* Both take an `Option LibCtx`, whose `none` is a scalar and means the default
    library context. */
@@ -66,6 +74,39 @@ lean_obj_res lc_io_error(const char *context);
 static inline lean_obj_res lc_caller_error(const char *message) {
   return lean_io_result_mk_error(lean_mk_io_user_error(lean_mk_string(message)));
 }
+
+/* An OpenSSL object together with the library context it came from, which it
+   holds open. Freeing an `OSSL_LIB_CTX` tears down the providers loaded into it
+   whatever is still using them, and nothing OpenSSL hands out counts as a use,
+   so the reference has to be kept here. `owner` is NULL for the default context.
+
+   A context derived from such an object, an `EVP_MD_CTX` for one, needs the same
+   reference: OpenSSL's own counting keeps its algorithm and that algorithm's
+   provider alive, but reaches no further. */
+typedef struct {
+  void *handle;
+  lc_libctx *owner;
+} lc_owned;
+
+static inline void *lc_handle(b_lean_obj_arg o) {
+  return ((lc_owned *)lean_get_external_data(o))->handle;
+}
+
+static inline lc_libctx *lc_owner(b_lean_obj_arg o) {
+  return ((lc_owned *)lean_get_external_data(o))->owner;
+}
+
+/* Makes an external object. Returns NULL only if the classes could not be
+   registered. */
+lean_object *lc_alloc_external(lean_external_class **cls, void *data);
+
+/* Wraps `handle`, taking a reference to `owner`. Returns NULL only on allocation
+   failure, leaving `handle` for the caller to free. */
+lean_object *lc_owned_alloc(lean_external_class **cls, void *handle, lc_libctx *owner);
+
+/* Moves an already wrapped object to `owner`, for a context that has just been
+   given the algorithm it will work with. */
+void lc_owned_set_owner(b_lean_obj_arg o, lc_libctx *owner);
 
 /* Scratch storage for the integers an `OSSL_PARAM` points at. It has to outlive
    the OpenSSL call, so it cannot be a temporary inside the conversion. */

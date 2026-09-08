@@ -25,6 +25,14 @@ def cases : Array Case := #[
       Memory.expectNoGrowth Memory.allowance <|
         for _ in [0:1000] do
           let _ ← Evp.LibCtx.withProviders #["default", "legacy"] },
+  { name := "a context is still freed once what was fetched from it goes"
+    run :=
+      -- The digest holds the context open, so this leaks a context a round if
+      -- the reference it takes is never given back.
+      Memory.expectNoGrowth Memory.allowance <|
+        for _ in [0:1000] do
+          let _ ← Evp.Digest.fetchIn
+            (some (← Evp.LibCtx.withProviders #["default", "legacy"])) "SHA2-256" },
   { name := "dropped keys do not accumulate"
     run := do
       let der ← (← Evp.PKey.generate "ED25519" #[]).toPkcs8
