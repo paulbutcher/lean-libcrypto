@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1
+
+- A fetched algorithm now holds its library context open, so dropping the context first is no longer a use after free.
+- The external classes are registered on first use rather than from an `initialize` block, which removes `Libcrypto.Init` and lets `lake lint` run.
+
 ## 0.1.0
 
 - Digests over the EVP interface, with the `OSSL_PARAM` bridge, the error bridge and constant-time comparison.
