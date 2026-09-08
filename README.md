@@ -51,7 +51,7 @@ let ctx ← Evp.LibCtx.withProviders #["default", "legacy"]
 let md ← Evp.Digest.fetchIn (some ctx) "WHIRLPOOL"
 ```
 
-A context with nothing loaded falls back to the default provider, and that fallback ends at the first explicit load, so name `"default"` alongside `"legacy"` unless you mean to exclude it. Which algorithms are legacy is a property of the linked OpenSSL and has moved between releases.
+What you fetch holds its context open, so `md` outliving `ctx` is fine. A context with nothing loaded falls back to the default provider, and that fallback ends at the first explicit load, so name `"default"` alongside `"legacy"` unless you mean to exclude it. Which algorithms are legacy is a property of the linked OpenSSL and has moved between releases.
 
 ## Known issues
 
