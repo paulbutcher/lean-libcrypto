@@ -11,4 +11,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
+      # The algorithms available, and some of the behaviour the tests pin down,
+      # are properties of whichever OpenSSL the runner happens to carry.
+      - name: Record the OpenSSL being linked
+        run: |
+          pkg-config --modversion libcrypto
+          openssl version -a
       - uses: leanprover/lean-action@v1

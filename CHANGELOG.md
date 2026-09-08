@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.0
 
 - Digests over the EVP interface, with the `OSSL_PARAM` bridge, the error bridge and constant-time comparison.
 - Public key decoding and signature verification for RSA PKCS#1 v1.5, RSA-PSS, ECDSA and Ed25519.

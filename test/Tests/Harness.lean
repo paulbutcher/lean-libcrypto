@@ -27,15 +27,24 @@ def expectThrows (what : String) (act : IO α) : IO Unit := do
   | .ok _ => throw <| IO.userError s!"{what}: expected an error, but it succeeded"
   | .error _ => pure ()
 
-/-- Runs every case, reporting each, and returns the number that failed. -/
+/-- Runs every case, reporting each, and returns the number that failed.
+
+The name goes out and is flushed before the case runs, and the verdict follows on
+the same line. A case that takes the whole process down with it, rather than
+throwing, therefore still leaves its own name as the last thing in the log; a
+buffered report would be lost with the process. -/
 def runCases (cases : Array Case) : IO Nat := do
+  let stdout ← IO.getStdout
   let mut failed := 0
   for case in cases do
+    stdout.putStr s!"{case.name} ... "
+    stdout.flush
     match ← case.run.toBaseIO with
-    | .ok _ => IO.println s!"ok   {case.name}"
+    | .ok _ => stdout.putStrLn "ok"
     | .error e =>
       failed := failed + 1
-      IO.println s!"FAIL {case.name}: {e}"
+      stdout.putStrLn s!"FAILED: {e}"
+    stdout.flush
   return failed
 
 end Tests

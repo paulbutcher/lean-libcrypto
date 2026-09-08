@@ -7,7 +7,7 @@ A Lean 4 binding to OpenSSL 3's libcrypto, covering the EVP interfaces generical
 **Requirements:** OpenSSL 3.0 or later, its development headers, and `pkg-config`.
 
 ```lean
-require «lean-libcrypto» from git "<this repository>"
+require «lean-libcrypto» from git "https://github.com/paulbutcher/lean-libcrypto.git"
 ```
 
 ## The two layers
