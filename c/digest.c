@@ -66,6 +66,8 @@ LEAN_EXPORT lean_obj_res lc_md_ctx_update(b_lean_obj_arg ctx, b_lean_obj_arg dat
                                           lean_obj_arg world) {
   (void)world;
   ERR_clear_error();
+  if (EVP_MD_CTX_get0_md((EVP_MD_CTX *)lean_get_external_data(ctx)) == NULL)
+    return lc_caller_error("this digest context has not been initialised");
   if (!EVP_DigestUpdate((EVP_MD_CTX *)lean_get_external_data(ctx), lean_sarray_cptr(data),
                         lean_sarray_size(data)))
     return lc_io_error("EVP_DigestUpdate");
@@ -75,6 +77,8 @@ LEAN_EXPORT lean_obj_res lc_md_ctx_update(b_lean_obj_arg ctx, b_lean_obj_arg dat
 LEAN_EXPORT lean_obj_res lc_md_ctx_final(b_lean_obj_arg ctx, lean_obj_arg world) {
   (void)world;
   ERR_clear_error();
+  if (EVP_MD_CTX_get0_md((EVP_MD_CTX *)lean_get_external_data(ctx)) == NULL)
+    return lc_caller_error("this digest context has not been initialised");
   unsigned char out[EVP_MAX_MD_SIZE];
   unsigned int size = 0;
   if (!EVP_DigestFinal_ex((EVP_MD_CTX *)lean_get_external_data(ctx), out, &size))

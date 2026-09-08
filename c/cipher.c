@@ -25,6 +25,13 @@ static EVP_CIPHER_CTX *lc_cipher_ctx(b_lean_obj_arg ctx) {
   return (EVP_CIPHER_CTX *)lean_get_external_data(ctx);
 }
 
+static int lc_cipher_ctx_ready(b_lean_obj_arg ctx) {
+  return EVP_CIPHER_CTX_get0_cipher(lc_cipher_ctx(ctx)) != NULL;
+}
+
+static const char *const lc_cipher_uninitialised =
+    "this cipher context has not been initialised";
+
 LEAN_EXPORT lean_obj_res lc_cipher_name(b_lean_obj_arg cipher) {
   const char *name = EVP_CIPHER_get0_name(lc_cipher(cipher));
   return lean_mk_string(name == NULL ? "" : name);
@@ -93,9 +100,9 @@ static lean_obj_res lc_cipher_ctx_init(b_lean_obj_arg ctx, b_lean_obj_arg cipher
   int iv_size = lc_opt_size(iv);
   if (key_size < 0 && iv_size < 0) return lean_io_result_mk_ok(lean_box(0));
   if (key_size >= 0 && key_size != EVP_CIPHER_CTX_get_key_length(c))
-    return lc_io_error("the key is not the length this cipher takes");
+    return lc_caller_error("the key is not the length this cipher takes");
   if (iv_size >= 0 && iv_size != EVP_CIPHER_CTX_get_iv_length(c))
-    return lc_io_error("the nonce is not the length this context was set up for");
+    return lc_caller_error("the nonce is not the length this context was set up for");
   if (!EVP_CipherInit_ex2(c, NULL, lc_opt_bytes(key), lc_opt_bytes(iv), encrypt, NULL))
     return lc_io_error(encrypt ? "EVP_EncryptInit_ex2" : "EVP_DecryptInit_ex2");
   return lean_io_result_mk_ok(lean_box(0));
@@ -119,6 +126,7 @@ LEAN_EXPORT lean_obj_res lc_cipher_ctx_update(b_lean_obj_arg ctx, b_lean_obj_arg
                                               lean_obj_arg world) {
   (void)world;
   ERR_clear_error();
+  if (!lc_cipher_ctx_ready(ctx)) return lc_caller_error(lc_cipher_uninitialised);
   size_t size = lean_sarray_size(input);
   /* `EVP_CipherUpdate` counts in `int`, so anything larger has to be refused
      rather than silently truncated to the low bits of its length. */
@@ -141,6 +149,7 @@ LEAN_EXPORT lean_obj_res lc_cipher_ctx_update_aad(b_lean_obj_arg ctx, b_lean_obj
                                                   lean_obj_arg world) {
   (void)world;
   ERR_clear_error();
+  if (!lc_cipher_ctx_ready(ctx)) return lc_caller_error(lc_cipher_uninitialised);
   size_t size = lean_sarray_size(aad);
   if (size > INT_MAX) return lc_io_error("this additional data is too long for one update");
   int written = 0;
@@ -152,6 +161,7 @@ LEAN_EXPORT lean_obj_res lc_cipher_ctx_update_aad(b_lean_obj_arg ctx, b_lean_obj
 LEAN_EXPORT lean_obj_res lc_cipher_ctx_encrypt_final(b_lean_obj_arg ctx, lean_obj_arg world) {
   (void)world;
   ERR_clear_error();
+  if (!lc_cipher_ctx_ready(ctx)) return lc_caller_error(lc_cipher_uninitialised);
   size_t capacity = (size_t)EVP_CIPHER_CTX_get_block_size(lc_cipher_ctx(ctx));
   lean_obj_res out = lean_alloc_sarray(1, capacity, capacity);
   int written = 0;
@@ -166,6 +176,7 @@ LEAN_EXPORT lean_obj_res lc_cipher_ctx_encrypt_final(b_lean_obj_arg ctx, lean_ob
 LEAN_EXPORT lean_obj_res lc_cipher_ctx_decrypt_final(b_lean_obj_arg ctx, lean_obj_arg world) {
   (void)world;
   ERR_clear_error();
+  if (!lc_cipher_ctx_ready(ctx)) return lc_caller_error(lc_cipher_uninitialised);
   size_t capacity = (size_t)EVP_CIPHER_CTX_get_block_size(lc_cipher_ctx(ctx));
   lean_obj_res out = lean_alloc_sarray(1, capacity, capacity);
   int written = 0;
@@ -187,6 +198,7 @@ LEAN_EXPORT lean_obj_res lc_cipher_ctx_set_params(b_lean_obj_arg ctx, b_lean_obj
                                                   lean_obj_arg world) {
   (void)world;
   ERR_clear_error();
+  if (!lc_cipher_ctx_ready(ctx)) return lc_caller_error(lc_cipher_uninitialised);
   lc_params built;
   if (!lc_params_build(params, &built)) return lc_io_error("allocating OSSL_PARAM array");
   int ok = EVP_CIPHER_CTX_set_params(lc_cipher_ctx(ctx), built.params);
@@ -199,6 +211,7 @@ LEAN_EXPORT lean_obj_res lc_cipher_ctx_get_octets(b_lean_obj_arg ctx, b_lean_obj
                                                   b_lean_obj_arg size, lean_obj_arg world) {
   (void)world;
   ERR_clear_error();
+  if (!lc_cipher_ctx_ready(ctx)) return lc_caller_error(lc_cipher_uninitialised);
   size_t wanted = (size_t)lean_uint64_of_nat(size);
   lean_obj_res out = lean_alloc_sarray(1, wanted, wanted);
   OSSL_PARAM params[2];

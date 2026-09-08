@@ -28,6 +28,5 @@ Dropping `precompileModules` is not a way out, because Lake then passes no dynam
 
 ## Untested ground
 
-- macOS. The `-undefined dynamic_lookup` branch is in the lakefile, but nothing here has been built or run on a Mac.
-- Continuous integration. The workflow is stock `lean-action` with no step ensuring `libssl-dev` and `pkg-config` are present, and it has not been seen to run.
-- The finalizer tests read `/proc/self/statm`, so they skip on anything but Linux and take that coverage with them.
+- Only three OpenSSL builds are exercised: 3.0.13 on x86_64 Linux in continuous integration, 3.5.5 on aarch64 Linux in development, and 3.6.4 on macOS. The releases in between are inferred from the API each documents rather than tested.
+- The finalizer tests read `/proc/self/statm`, so on macOS they skip, saying so as they go. Nothing outside Linux has confirmed that the finalizers run.

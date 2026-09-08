@@ -77,8 +77,15 @@ private def digestCases : Array Case := #[
       expectEq "length" (← Evp.Digest.digest md (bytes "abc") #[]).size md.size },
   { name := "fetching an algorithm no provider offers is an error"
     run := expectThrows "fetch of NO-SUCH-DIGEST" (Evp.Digest.fetch "NO-SUCH-DIGEST") },
+  -- OpenSSL 3.0 calls through a null function pointer for an update on a context
+  -- with no digest set, so this is a check that the shim refuses first.
   { name := "a context rejects an update before init"
-    run := do expectThrows "update before init" ((← Evp.Digest.Ctx.new).update (bytes "abc")) }]
+    run := do expectThrows "update before init" ((← Evp.Digest.Ctx.new).update (bytes "abc")) },
+  { name := "a context rejects an empty update before init"
+    run := do
+      expectThrows "empty update before init" ((← Evp.Digest.Ctx.new).update ByteArray.empty) },
+  { name := "a context rejects a final before init"
+    run := do expectThrows "final before init" (← Evp.Digest.Ctx.new).final }]
 
 def cases : Array Case := fips1804 ++ digestCases
 

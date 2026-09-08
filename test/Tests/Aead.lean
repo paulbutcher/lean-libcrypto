@@ -104,6 +104,17 @@ private def tamperingCases : Array Case := #[
   { name := "an empty nonce raises rather than being refused"
     run := expectThrows "encrypt with an empty nonce"
       (Aead.encrypt .aes256Gcm key ByteArray.empty aad plaintext) },
+  -- OpenSSL 3.0 reads through the null cipher when asked a context's block size,
+  -- so these check that the shim refuses before it gets that far.
+  { name := "a cipher context rejects an update before init"
+    run := do expectThrows "update before init" ((← Evp.Cipher.Ctx.new).update plaintext) },
+  { name := "a cipher context rejects additional data before init"
+    run := do expectThrows "aad before init" ((← Evp.Cipher.Ctx.new).updateAad aad) },
+  { name := "a cipher context rejects a final before init"
+    run := do
+      expectThrows "encrypt final before init" (← Evp.Cipher.Ctx.new).encryptFinal
+      expectThrows "decrypt final before init" (← Evp.Cipher.Ctx.new).decryptFinal
+      expectThrows "reading the tag before init" ((← Evp.Cipher.Ctx.new).getOctets "tag" 16) },
   { name := "the lengths each algorithm reports are the ones its cipher takes"
     run :=
       [Aead.Algorithm.aes128Gcm, .aes192Gcm, .aes256Gcm, .chaCha20Poly1305].forM fun a => do

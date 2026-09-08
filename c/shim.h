@@ -55,6 +55,18 @@ static inline OSSL_LIB_CTX *lc_libctx_of(b_lean_obj_arg option) {
    what this call produced. */
 lean_obj_res lc_io_error(const char *context);
 
+/* For a fault of the caller's making, which OpenSSL has not been asked about and
+   so has said nothing about.
+
+   The callers that matter most are the checks for a context with no algorithm
+   set. OpenSSL 3.0 reads through the null in `EVP_DigestUpdate` and in
+   `EVP_CIPHER_CTX_get_block_size`, killing the process rather than failing the
+   call; 3.5 returns an error from both. Checking before the call makes it an
+   error on every version. */
+static inline lean_obj_res lc_caller_error(const char *message) {
+  return lean_io_result_mk_error(lean_mk_io_user_error(lean_mk_string(message)));
+}
+
 /* Scratch storage for the integers an `OSSL_PARAM` points at. It has to outlive
    the OpenSSL call, so it cannot be a temporary inside the conversion. */
 typedef union {
