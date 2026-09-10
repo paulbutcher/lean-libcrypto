@@ -2,6 +2,8 @@
 Copyright (c) 2026 Paul Butcher. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
+module
+
 import Tests.Aead
 import Tests.ConstantTime
 import Tests.Digest
@@ -12,7 +14,8 @@ import Tests.Param
 import Tests.Provider
 import Tests.Sign
 import Tests.Signing
-def main : IO UInt32 := do
+
+public def main : IO UInt32 := do
   let failed ← Tests.runCases <|
     Tests.Hex.cases ++ Tests.Param.cases ++ Tests.ConstantTime.cases ++ Tests.Mac.cases
       ++ Tests.Aead.cases

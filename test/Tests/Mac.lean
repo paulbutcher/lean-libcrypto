@@ -2,10 +2,14 @@
 Copyright (c) 2026 Paul Butcher. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
+module
+
 import Libcrypto
 import Tests.Fixtures.Mac
-import Tests.Harness
+public import Tests.Harness
 import Tests.Hex
+
+public section
 
 namespace Tests.Mac
 

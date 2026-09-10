@@ -2,6 +2,9 @@
 Copyright (c) 2026 Paul Butcher. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
+module
+
+public section
 
 /-!
 The Ed25519 vectors of RFC 8032 section 7.1, as hex. Ed25519 signing is

@@ -6,7 +6,7 @@ import Lake
 open Lake DSL
 
 package «lean-libcrypto» where
-  version := v!"0.1.1"
+  version := v!"0.2.0"
   builtinLint := true
   leanOptions := #[⟨`linter.extra, true⟩, ⟨`warningAsError, true⟩]
 

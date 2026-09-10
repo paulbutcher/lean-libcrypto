@@ -2,8 +2,12 @@
 Copyright (c) 2026 Paul Butcher. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
-import Libcrypto
-import Tests.Harness
+module
+
+public import Libcrypto
+public import Tests.Harness
+
+public section
 
 namespace Tests.Param
 
@@ -11,7 +15,7 @@ open Libcrypto.Evp
 
 /-- Which constructor a value was built with, so that the theorem below can say
 the data type determines it without reaching for a generated ordinal. -/
-private def kind : ParamValue → Nat
+def kind : ParamValue → Nat
   | .int _ => 0
   | .uint _ => 1
   | .utf8 _ => 2

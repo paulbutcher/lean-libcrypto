@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.0
+
+- Move to the module system.
+
 ## 0.1.1
 
 - A fetched algorithm now holds its library context open, so dropping the context first is no longer a use after free.

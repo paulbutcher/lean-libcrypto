@@ -2,6 +2,9 @@
 Copyright (c) 2026 Paul Butcher. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 -/
+module
+
+public section
 
 namespace Libcrypto.Evp
 
@@ -24,7 +27,7 @@ structure Param where
 /-- The `data_type` the shim tags each constructor with, from `openssl/core.h`.
 Stated in Lean so it can be reasoned about; `Param.shimDataType` reports what the
 shim really builds, which is what makes this worth stating separately. -/
-def ParamValue.dataType : ParamValue → UInt32
+@[expose] def ParamValue.dataType : ParamValue → UInt32
   | .int _ => 1
   | .uint _ => 2
   | .utf8 _ => 4
