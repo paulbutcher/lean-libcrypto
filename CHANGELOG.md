@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1
+
+- Chore: bump dependencies.
+
 ## 0.2.0
 
 - Move to the module system.
