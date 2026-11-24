@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.0
+
+- Breaking: move to Lean v4.36.0; consumers must use the same toolchain.
+
 ## 0.2.1
 
 - Chore: bump dependencies.
